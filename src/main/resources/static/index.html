@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Manager</title>
+    <style>
+        /* Soft UI Color Palette & Typography */
+        :root {
+            --bg-color: #f3f6f8;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --text-muted: #636e72;
+            --accent-blue: #74b9ff;
+            --accent-blue-hover: #0984e3;
+            --accent-green: #55efc4;
+            --accent-green-hover: #00b894;
+            --accent-red: #ff7675;
+            --accent-red-hover: #d63031;
+            --shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 40px 20px; background-color: var(--bg-color); color: var(--text-main); }
+        .container { max-width: 1200px; margin: auto; }
+        
+        h1 { text-align: center; font-weight: 300; letter-spacing: 1px; color: var(--text-main); margin-bottom: 40px; animation: fadeInDown 0.8s ease; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; }
+        
+        .card { padding: 25px; background: var(--card-bg); border-radius: 16px; box-shadow: var(--shadow); transition: var(--transition); animation: fadeInUp 0.6s ease backwards; display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08); }
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card.full-width { grid-column: 1 / -1; animation-delay: 0.4s; }
+
+        h2 { font-size: 1.2rem; margin-top: 0; color: var(--text-muted); border-bottom: 2px solid var(--bg-color); padding-bottom: 10px; margin-bottom: 20px; }
+
+        input, select, button { width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #dfe6e9; border-radius: 8px; box-sizing: border-box; font-family: inherit; transition: var(--transition); }
+        input:focus, select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(116, 185, 255, 0.2); }
+
+        button { background-color: var(--accent-blue); color: white; border: none; font-weight: 600; cursor: pointer; margin-top: auto; }
+        button:hover { background-color: var(--accent-blue-hover); }
+        .btn-order { background-color: var(--accent-green); }
+        .btn-order:hover { background-color: var(--accent-green-hover); }
+        .btn-alert { background-color: var(--accent-red); }
+        .btn-alert:hover { background-color: var(--accent-red-hover); }
+        button:disabled { background-color: #b2bec3; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { font-weight: 600; color: var(--text-muted); }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: var(--text-main); }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { color: var(--text-muted); font-weight: 600; background-color: #fafbfc; }
+        tr:hover td { background-color: #fdfdfd; }
+
+        .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+        .pagination-controls button { width: auto; padding: 8px 20px; margin: 0; border-radius: 20px; }
+        .page-info { font-weight: 600; color: var(--text-muted); }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>✨ Inventory Management System</h1>
+
+    <div class="grid">
+        <div class="card">
+            <h2>📦 Add New Product</h2>
+            <input type="text" id="sku" placeholder="SKU (e.g., LAP-001)">
+            <input type="text" id="name" placeholder="Product Name">
+            <input type="number" id="price" placeholder="Price ($)">
+            <input type="number" id="stock" placeholder="Initial Stock">
+            <input type="number" id="threshold" placeholder="Minimum Threshold">
+            <button onclick="addProduct()">Add Product</button>
+        </div>
+
+        <div class="card">
+            <h2>🛒 Process Order</h2>
+            <select id="orderType">
+                <option value="OUTBOUND">Customer Sale (Deduct Stock)</option>
+                <option value="INBOUND">Restock (Add Stock)</option>
+            </select>
+            <input type="number" id="productId" placeholder="Product ID (e.g., 1)">
+            <input type="number" id="quantity" placeholder="Quantity">
+            <button class="btn-order" onclick="processOrder()">Submit Order</button>
+        </div>
+
+        <div class="card">
+            <h2>📊 Quick Stats & Reports</h2>
+            <div class="stat-row">
+                <span class="stat-label">Total Product Types</span>
+                <span class="stat-value" id="stat-total">-</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Total Inventory Value</span>
+                <span class="stat-value" id="stat-value" style="color: var(--accent-green);">-</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Active Alerts</span>
+                <span class="stat-value" id="stat-alerts" style="color: var(--accent-red);">-</span>
+            </div>
+            
+            <button onclick="downloadReport()" style="background-color: #6c5ce7; margin-top: 20px;">
+                📥 Download Excel Report (CSV)
+            </button>
+        </div>
+    </div>
+
+    <div class="card full-width" style="margin-top: 25px;">
+        <h2>📋 Current Inventory</h2>
+        <table id="inventory-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>SKU</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-body"></tbody>
+        </table>
+        
+        <div class="pagination-controls">
+            <button id="btn-prev" onclick="changePage(-1)">← Previous</button>
+            <span class="page-info" id="page-info">Page 1 of 1</span>
+            <button id="btn-next" onclick="changePage(1)">Next →</button>
+        </div>
+    </div>
+
+    <div class="card full-width" style="margin-top: 25px;">
+        <h2>⚠️ Low Stock Alerts</h2>
+        <button class="btn-alert" onclick="checkAlerts()" style="width: 200px;">Refresh Alerts</button>
+        <p id="alert-message" style="margin-top: 15px; font-weight: bold;"></p>
+        <table id="alerts-table" style="display:none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Current Stock</th>
+                    <th>Minimum Threshold</th>
+                </tr>
+            </thead>
+            <tbody id="alerts-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/api/inventory';
+    let currentPage = 0;
+    const pageSize = 5;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        fetchInventory();
+        updateQuickStats();
+        checkAlerts();
+    });
+
+    async function fetchInventory() {
+        const response = await fetch(`${API_BASE}/products/page?page=${currentPage}&size=${pageSize}`);
+        const data = await response.json();
+        
+        const tbody = document.getElementById('inventory-body');
+        tbody.innerHTML = '';
+
+        data.content.forEach(p => {
+            const statusColor = p.stockStatus === "In Stock" ? "var(--accent-green)" : "var(--accent-red)";
+            tbody.innerHTML += `
+                <tr>
+                    <td>#${p.id}</td>
+                    <td style="font-family: monospace; color: #636e72;">${p.sku}</td>
+                    <td><b>${p.name}</b></td>
+                    <td>$${p.price.toFixed(2)}</td>
+                    <td style="color: ${statusColor}; font-weight: 600;">${p.stockStatus}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('page-info').innerText = `Page ${data.number + 1} of ${data.totalPages === 0 ? 1 : data.totalPages}`;
+        document.getElementById('btn-prev').disabled = data.first;
+        document.getElementById('btn-next').disabled = data.last;
+    }
+
+    function changePage(direction) {
+        currentPage += direction;
+        fetchInventory();
+    }
+
+    async function updateQuickStats() {
+        const prodRes = await fetch(`${API_BASE}/products`);
+        const products = await prodRes.json();
+        document.getElementById('stat-total').innerText = products.length;
+        
+        let catalogValue = products.reduce((sum, p) => sum + p.price, 0);
+        document.getElementById('stat-value').innerText = '$' + catalogValue.toFixed(2);
+
+        const alertRes = await fetch(`${API_BASE}/alerts/low-stock`);
+        const alerts = await alertRes.json();
+        document.getElementById('stat-alerts').innerText = alerts.length;
+    }
+
+    async function addProduct() {
+        const product = {
+            sku: document.getElementById('sku').value,
+            name: document.getElementById('name').value,
+            price: parseFloat(document.getElementById('price').value),
+            stockQuantity: parseInt(document.getElementById('stock').value),
+            minThreshold: parseInt(document.getElementById('threshold').value)
+        };
+
+        const response = await fetch(`${API_BASE}/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(product)
+        });
+
+        if (response.ok) {
+            alert("✨ Product Added!");
+            document.querySelectorAll('input').forEach(input => input.value = '');
+            fetchInventory();
+            updateQuickStats();
+            checkAlerts();
+        } else {
+            alert("Error adding product.");
+        }
+    }
+
+    async function processOrder() {
+        const order = {
+            orderType: document.getElementById('orderType').value,
+            productId: parseInt(document.getElementById('productId').value),
+            quantity: parseInt(document.getElementById('quantity').value)
+        };
+
+        const response = await fetch(`${API_BASE}/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(order)
+        });
+
+        if (response.ok) {
+            alert("🛒 Order Processed!");
+            document.getElementById('productId').value = '';
+            document.getElementById('quantity').value = '';
+            fetchInventory();
+            updateQuickStats();
+            checkAlerts();
+        } else {
+            const errorData = await response.json();
+            alert("❌ Error: " + errorData.message); 
+        }
+    }
+
+    async function checkAlerts() {
+        const response = await fetch(`${API_BASE}/alerts/low-stock`);
+        const products = await response.json();
+        
+        const table = document.getElementById('alerts-table');
+        const tbody = document.getElementById('alerts-body');
+        const message = document.getElementById('alert-message');
+
+        tbody.innerHTML = '';
+
+        if (products.length === 0) {
+            table.style.display = 'none';
+            message.innerText = "✅ All stock levels are healthy!";
+            message.style.color = "var(--accent-green)";
+        } else {
+            table.style.display = 'table';
+            message.innerText = "⚠️ The following items need restocking!";
+            message.style.color = "var(--accent-red)";
+
+            products.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.name}</td>
+                        <td style="color:var(--accent-red); font-weight:bold;">${p.stockQuantity}</td>
+                        <td>${p.minThreshold}</td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    // THE NEW DOWNLOAD FUNCTION
+    function downloadReport() {
+        window.location.href = `${API_BASE}/reports/csv`;
+    }
+</script>
+</body>
+</html>
