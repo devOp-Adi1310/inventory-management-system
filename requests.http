@@ -1,0 +1,28 @@
+### 1. Add a Product to Inventory
+POST http://localhost:8080/api/inventory/products
+Content-Type: application/json
+
+{
+    "sku": "KEY-001",
+    "name": "Mechanical Keyboard",
+    "price": 75.50,
+    "stockQuantity": 5,
+    "minThreshold": 3
+}
+
+###
+
+### 2. Process a Sales Order (Sell 3 Keyboards)
+POST http://localhost:8080/api/inventory/orders
+Content-Type: application/json
+
+{
+    "orderType": "OUTBOUND",
+    "productId": 1,
+    "quantity": 3
+}
+
+###
+
+### 3. Check for Low Stock Alerts
+GET http://localhost:8080/api/inventory/alerts/low-stock

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Soft UI Color Palette & Typography */
         :root {
@@ -64,6 +65,33 @@
 
         @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* NEW: Full Screen Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.8); /* Dark transparent background */
+            z-index: 1000; /* Puts it on top of everything */
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            width: 90%; height: 90%;
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            top: 15px; right: 25px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #d63031;
+        }
+        .close-btn:hover { color: #ff7675; }
     </style>
 </head>
 <body>
@@ -106,6 +134,10 @@
             <div class="stat-row">
                 <span class="stat-label">Active Alerts</span>
                 <span class="stat-value" id="stat-alerts" style="color: var(--accent-red);">-</span>
+            </div>
+            
+            <div style="margin-top: 20px; height: 200px;">
+                <canvas id="inventoryChart"></canvas>
             </div>
             
             <button onclick="downloadReport()" style="background-color: #6c5ce7; margin-top: 20px;">
@@ -163,7 +195,80 @@
         fetchInventory();
         updateQuickStats();
         checkAlerts();
+        renderChart();
     });
+
+    // NEW: Initialize the Chart variable so we can update it later
+    let inventoryChart;
+
+    async function renderChart() {
+        // Fetch all products
+        const response = await fetch(`${API_BASE}/products`);
+        const products = await response.json();
+        console.log(products);
+
+        // Extract the data for the chart
+        const productNames = products.map(p => p.name);
+        const stockLevels = products.map(p => p.quantity); 
+        const thresholds = products.map(p => p.minThreshold);
+
+        // Get the canvas element
+        const ctx = document.getElementById('inventoryChart').getContext('2d');
+
+        // Destroy the old chart if it exists (prevents overlapping when refreshing)
+        if (inventoryChart) {
+            inventoryChart.destroy();
+        }
+
+        // Draw the new chart
+        inventoryChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: productNames,
+                datasets: [
+                    {
+                        label: 'Current Stock',
+                        data: stockLevels,
+                        backgroundColor: 'rgba(116, 185, 255, 0.6)',
+                        borderColor: 'rgba(9, 132, 227, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Minimum Threshold',
+                        data: thresholds,
+                        backgroundColor: 'rgba(255, 118, 117, 0.6)',
+                        borderColor: 'rgba(214, 48, 49, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                // 1. THIS HIDES THE TEXT AT THE BOTTOM
+                scales: {
+                    x: {
+                        ticks: {
+                            display: false 
+                        }
+                    },
+                    y: { 
+                        beginAtZero: true 
+                    }
+                },
+                // 2. THIS MAKES THE GRAPH CLICKABLE
+                onClick: (e) => {
+                    openFullScreenChart();
+                },
+                // (Optional but good practice) Ensure tooltips are explicitly turned on
+                plugins: {
+                    tooltip: {
+                        enabled: true
+                    }
+                }
+            }
+        });
+    }
 
     async function fetchInventory() {
         const response = await fetch(`${API_BASE}/products/page?page=${currentPage}&size=${pageSize}`);
@@ -296,6 +401,59 @@
     function downloadReport() {
         window.location.href = `${API_BASE}/reports/csv`;
     }
+
+    let bigChart; // Variable for the full-screen chart
+
+    async function openFullScreenChart() {
+        // 1. Show the dark overlay
+        document.getElementById('chart-modal').style.display = 'flex';
+        
+        // 2. Fetch the fresh data
+        const response = await fetch(`${API_BASE}/products`);
+        const products = await response.json();
+
+        const productNames = products.map(p => p.name);
+        const stockLevels = products.map(p => p.quantity);
+        const thresholds = products.map(p => p.minThreshold);
+
+        const ctx = document.getElementById('fullScreenChart').getContext('2d');
+
+        // 3. Destroy old big chart if it exists
+        if (bigChart) {
+            bigChart.destroy();
+        }
+
+        // 4. Draw the big chart (Notice we do NOT hide the X-axis labels here!)
+        bigChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: productNames,
+                datasets: [
+                    { label: 'Current Stock', data: stockLevels, backgroundColor: 'rgba(116, 185, 255, 0.6)', borderColor: 'rgba(9, 132, 227, 1)', borderWidth: 1 },
+                    { label: 'Minimum Threshold', data: thresholds, backgroundColor: 'rgba(255, 118, 117, 0.6)', borderColor: 'rgba(214, 48, 49, 1)', borderWidth: 1 }
+                ]
+            },
+            options: {
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    function closeModal() {
+        // Hide the overlay when the close button is clicked
+        document.getElementById('chart-modal').style.display = 'none';
+    }
 </script>
+<div id="chart-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">✖ Close</span>
+            <h2 style="text-align: center; margin-top: 0;">Full Inventory Chart</h2>
+            <div style="height: 80vh; width: 100%;">
+                <canvas id="fullScreenChart"></canvas>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

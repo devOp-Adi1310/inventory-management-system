@@ -1,19 +1,20 @@
 package com.example.inventory_system.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.inventory_system.dto.ProductResponseDTO;
 import com.example.inventory_system.exception.InventoryException;
 import com.example.inventory_system.model.Order;
 import com.example.inventory_system.model.Product;
 import com.example.inventory_system.repository.OrderRepository;
 import com.example.inventory_system.repository.ProductRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class InventoryService {
@@ -32,6 +33,8 @@ public class InventoryService {
         dto.setSku(product.getSku());
         dto.setName(product.getName());
         dto.setPrice(product.getPrice());
+        dto.setQuantity(product.getStockQuantity());         
+        dto.setMinThreshold(product.getMinThreshold());
 
         Integer stock = product.getStockQuantity();
         Integer threshold = product.getMinThreshold();
