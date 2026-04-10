@@ -1,14 +1,27 @@
-# 1. Use an official, lightweight Java 17 environment as our foundation
-FROM eclipse-temurin:17-jdk-alpine
-
-# 2. Create a folder inside the container to hold our app
+# ==========================================
+# STAGE 1: Build the application
+# ==========================================
+FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
 
-# 3. Copy the compiled .jar file from your laptop's target folder into the container
-COPY target/*.jar app.jar
+# Copy the Maven wrapper files and your source code
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+COPY src src
 
-# 4. Expose port 8080 so the internet can access the dashboard
+# Give execution permission to the Maven wrapper and build the .jar file
+RUN chmod +x ./mvnw
+RUN ./mvnw clean package -DskipTests
+
+# ==========================================
+# STAGE 2: Run the application
+# ==========================================
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
+
+# Copy ONLY the built .jar file from the previous stage (makes the final container super lightweight)
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
-
-# 5. The exact command to boot up the server
 ENTRYPOINT ["java", "-jar", "app.jar"]
