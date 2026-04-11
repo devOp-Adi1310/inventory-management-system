@@ -36,7 +36,7 @@ public class SecurityConfig {
         // 4. Create our permanent Admin user!
         UserDetails admin = User.withDefaultPasswordEncoder()
             .username("Admin")
-            .password("Admin@7811886606") // Feel free to change this!
+            .password("admin@123") // Feel free to change this!
             .roles("ADMIN")
             .build();
         
