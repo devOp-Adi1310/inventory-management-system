@@ -27,19 +27,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 1. Disable CSRF to allow the logout button to work
             .csrf(csrf -> csrf.disable()) 
             
-            // 2. Allow CSS to load, but secure EVERYTHING else
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/css/**").permitAll() 
                 .anyRequest().authenticated()
             )
             
-            // 3. Enforce the strict default Spring Security login page
-            .formLogin(org.springframework.security.config.Customizer.withDefaults())
+            // THE FIX: Force the redirect to your home page
+            .formLogin(form -> form
+                .defaultSuccessUrl("/", true) // <--- Adds the forced redirect
+                .permitAll()
+            )
             
-            // 4. Clean and secure logout routing
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
