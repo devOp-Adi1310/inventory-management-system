@@ -53,8 +53,7 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?logout") // Where to send them after logging out
                         .invalidateHttpSession(true) // Destroys the active session
                         .deleteCookies("JSESSIONID") // Clears the browser cookie
-                        .permitAll());
-
-        return http.build();
+                    );
+        return http.build();            
     }
 }
