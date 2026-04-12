@@ -27,16 +27,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 1. DISABLE CSRF (Stops the 403 Forbidden error)
-            .csrf(csrf -> csrf.disable())
+            // 1. Disable CSRF to allow the logout button to work
+            .csrf(csrf -> csrf.disable()) 
             
+            // 2. Allow CSS to load, but secure EVERYTHING else
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/css/**").permitAll() 
+                .requestMatchers("/css/**").permitAll() 
                 .anyRequest().authenticated()
             )
-            .formLogin(form -> form
-                .permitAll()
-            )
+            
+            // 3. Enforce the strict default Spring Security login page
+            .formLogin(org.springframework.security.config.Customizer.withDefaults())
+            
+            // 4. Clean and secure logout routing
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
