@@ -27,6 +27,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // 1. DISABLE CSRF (Stops the 403 Forbidden error)
+            .csrf(csrf -> csrf.disable())
+            
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/css/**").permitAll() 
                 .anyRequest().authenticated()
